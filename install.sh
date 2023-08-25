@@ -410,10 +410,9 @@ progress 6 "Creating Rocket Pool user data directory..."
 
 
 # Download and extract package files
-progress 7 "Downloading Rocket Pool package files..."
-{ curl -L "$PACKAGE_URL" | tar -xJ -C "$TEMPDIR" || fail "Could not download and extract the Rocket Pool package files."; } >&2
+progress 7 "Copying Rocket Pool directory templates..."
+{ cp -rp ./install $TEMPDIR || fail "Could not copy local template directory."; } >&2
 { test -d "$PACKAGE_FILES_PATH" || fail "Could not extract the Rocket Pool package files."; } >&2
-
 
 # Copy package files
 progress 8 "Copying package files to Rocket Pool user data directory..."
