@@ -47,7 +47,7 @@ fi
 
 
 # The total number of steps in the installation process
-TOTAL_STEPS="13"
+TOTAL_STEPS="12"
 # The Rocket Pool user data path
 RP_PATH="$HOME/.rocketpool"
 # The default smart node package version to download
