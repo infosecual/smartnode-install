@@ -42,6 +42,10 @@ elif [ "$NETWORK" = "devnet" ]; then
     GETH_NETWORK="--goerli"
     RP_NETHERMIND_NETWORK="goerli"
     BESU_NETWORK="--network=goerli"
+elif [ "$NETWORK" = "holesky" ]; then
+    GETH_NETWORK="--holesky"
+    RP_NETHERMIND_NETWORK="holesky"
+    BESU_NETWORK="--network=holesky"
 else
     echo "Unknown network [$NETWORK]"
     exit 1
@@ -93,8 +97,8 @@ if [ "$CLIENT" = "geth" ]; then
             CMD="$CMD --ethstats $ETHSTATS_LABEL:$ETHSTATS_LOGIN"
         fi
 
-        if [ ! -z "$EC_CACHE_SIZE" ]; then
-            CMD="$CMD --cache $EC_CACHE_SIZE"
+        if [ "$RP_GETH_ENABLE_PBSS" = "true" ]; then
+            CMD="$CMD --state.scheme=path"
         fi
 
         if [ ! -z "$EC_MAX_PEERS" ]; then
@@ -149,7 +153,17 @@ if [ "$CLIENT" = "nethermind" ]; then
     sed -e "${LOG_LINE} i \    <logger name=\"Synchronization.Peers.SyncPeersReport\" maxlevel=\"Info\" final=\"true\"/>" -i /nethermind/NLog.config
     sed -i 's/<!-- \(<logger name=\"Synchronization\.Peers\.SyncPeersReport\".*\/>\).*-->/\1/g' /nethermind/NLog.config
 
-    CMD="$PERF_PREFIX /nethermind/Nethermind.Runner \
+    # Get the binary name (changed with v1.21, required for backwards compatibility)
+    if [ -f "/nethermind/Nethermind.Runner" ]; then
+        NETHERMIND_BINARY=/nethermind/Nethermind.Runner
+    elif [ -f "/nethermind/nethermind" ]; then
+        NETHERMIND_BINARY=/nethermind/nethermind
+    else
+        echo "Nethermind binary not found, cannot start Execution Client."
+        exit 1
+    fi
+
+    CMD="$PERF_PREFIX $NETHERMIND_BINARY \
         --config $RP_NETHERMIND_NETWORK \
         --Sync.SnapSync true \
         --datadir /ethclient/nethermind \
