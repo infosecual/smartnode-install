@@ -437,7 +437,11 @@ fi
 
 # get the smartnode cli repo
 progress 9 "Getting the smartnode cli repo..."
+# check that the smartnode directory exists, else clone it
+if [ ! -d smartnode ]; then
+    { mkdir smartnode || fail "Could not create the smartnode directory."; } >&2
 { git clone git@github.com:infosecual/smartnode.git -b smartnode-unlock || fail "Could not clone the smartnode cli repo."; } >&2
+fi
 
 # build the rocketpool daemon buider image
 progress 10 "Building the rocketpool daemon builder image..."
