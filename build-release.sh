@@ -27,7 +27,7 @@ build_cli() {
     cd smartnode || fail "Directory ${PWD}/smartnode/rocketpool-cli does not exist or you don't have permissions to access it."
 
     echo -n "Building CLI binaries... "
-    docker run --rm -v $PWD:/smartnode rocketpool/smartnode-builder:latest /smartnode/rocketpool-cli/build.sh || fail "Error building CLI binaries."
+    docker run --rm -v $PWD:/smartnode infosecual/smartnode-builder:latest /smartnode/rocketpool-cli/build.sh || fail "Error building CLI binaries."
     mv rocketpool-cli/rocketpool-cli-* ../$VERSION
     echo "done!"
 
@@ -37,7 +37,6 @@ build_cli() {
 
 # Builds the .tar.xz file packages with the RP configuration files
 build_install_packages() {
-    cd smartnode-install || fail "Directory ${PWD}/smartnode-install does not exist or you don't have permissions to access it."
     rm -f rp-smartnode-install.tar.xz
 
     echo -n "Building Smartnode installer packages... "
@@ -51,8 +50,6 @@ build_install_packages() {
     tar cfJ rp-update-tracker.tar.xz rp-update-tracker || fail "Error building update tracker package."
     mv rp-update-tracker.tar.xz ../$VERSION
     echo "done!"
-
-    cd ..
 }
 
 
@@ -67,13 +64,15 @@ build_daemon() {
     echo "done!"
 
     echo "Building Docker Smartnode image..."
-    docker buildx build --platform=linux/amd64 -t rocketpool/smartnode:$VERSION-amd64 -f docker/rocketpool-dockerfile --load . || fail "Error building amd64 Docker Smartnode image."
-    docker buildx build --platform=linux/arm64 -t rocketpool/smartnode:$VERSION-arm64 -f docker/rocketpool-dockerfile --load . || fail "Error building arm64 Docker Smartnode image."
+    docker buildx build --platform=linux/amd64 -t infosecual/smartnode:$VERSION-amd64 -f docker/rocketpool-dockerfile --load . || \
+        fail "Error building amd64 Docker Smartnode image.\n\tNOTE: You may need to instal qemu and qemu-user-static to build the arm64 image.\n\tTo install qemu and qemu-user-static, run: sudo apt install -y qemu qemu-user-static"
+    docker buildx build --platform=linux/arm64 -t infosecual/smartnode:$VERSION-arm64 -f docker/rocketpool-dockerfile --load . || \
+        fail "Error building amd64 Docker Smartnode image.\n\tNOTE: You may need to instal qemu and qemu-user-static to build the arm64 image.\n\tTo install qemu and qemu-user-static, run: sudo apt install -y qemu qemu-user-static"
     echo "done!"
 
     echo -n "Pushing to Docker Hub... "
-    docker push rocketpool/smartnode:$VERSION-amd64 || fail "Error pushing amd64 Docker Smartnode image to Docker Hub."
-    docker push rocketpool/smartnode:$VERSION-arm64 || fail "Error pushing arm Docker Smartnode image to Docker Hub."
+    docker push infosecual/smartnode:$VERSION-amd64 || fail "Error pushing amd64 Docker Smartnode image to Docker Hub."
+    docker push infosecual/smartnode:$VERSION-arm64 || fail "Error pushing arm Docker Smartnode image to Docker Hub."
     rm -f rocketpool/rocketpool-daemon-*
     echo "done!"
 
@@ -86,13 +85,13 @@ build_docker_prune_provision() {
     cd smartnode || fail "Directory ${PWD}/smartnode does not exist or you don't have permissions to access it."
 
     echo "Building Docker Prune Provisioner image..."
-    docker buildx build --platform=linux/amd64 -t rocketpool/smartnode:$VERSION-amd64 -f docker/rocketpool-prune-provision --load . || fail "Error building amd64 Docker Prune Provision  image."
-    docker buildx build --platform=linux/arm64 -t rocketpool/smartnode:$VERSION-arm64 -f docker/rocketpool-prune-provision --load . || fail "Error building arm64 Docker Prune Provision  image."
+    docker buildx build --platform=linux/amd64 -t infosecual/smartnode:$VERSION-amd64 -f docker/rocketpool-prune-provision --load . || fail "Error building amd64 Docker Prune Provision  image."
+    docker buildx build --platform=linux/arm64 -t infosecual/smartnode:$VERSION-arm64 -f docker/rocketpool-prune-provision --load . || fail "Error building arm64 Docker Prune Provision  image."
     echo "done!"
 
     echo -n "Pushing to Docker Hub... "
-    docker push rocketpool/eth1-prune-provision:$VERSION-amd64 || fail "Error pushing amd64 Docker Prune Provision image to Docker Hub."
-    docker push rocketpool/eth1-prune-provision:$VERSION-arm64 || fail "Error pushing arm Docker Prune Provision image to Docker Hub."
+    docker push infosecual/eth1-prune-provision:$VERSION-amd64 || fail "Error pushing amd64 Docker Prune Provision image to Docker Hub."
+    docker push infosecual/eth1-prune-provision:$VERSION-arm64 || fail "Error pushing arm Docker Prune Provision image to Docker Hub."
     echo "done!"
 
     cd ..
@@ -103,11 +102,11 @@ build_docker_prune_provision() {
 build_docker_manifest() {
     echo -n "Building Docker manifest... "
     rm -f ~/.docker/manifests/docker.io_rocketpool_smartnode-$VERSION
-    docker manifest create rocketpool/smartnode:$VERSION --amend rocketpool/smartnode:$VERSION-amd64 --amend rocketpool/smartnode:$VERSION-arm64
+    docker manifest create infosecual/smartnode:$VERSION --amend infosecual/smartnode:$VERSION-amd64 --amend infosecual/smartnode:$VERSION-arm64
     echo "done!"
 
     echo -n "Pushing to Docker Hub... "
-    docker manifest push --purge rocketpool/smartnode:$VERSION
+    docker manifest push --purge infosecual/smartnode:$VERSION
     echo "done!"
 }
 
@@ -116,11 +115,11 @@ build_docker_manifest() {
 build_latest_docker_manifest() {
     echo -n "Building 'latest' Docker manifest... "
     rm -f ~/.docker/manifests/docker.io_rocketpool_smartnode-latest
-    docker manifest create rocketpool/smartnode:latest --amend rocketpool/smartnode:$VERSION-amd64 --amend rocketpool/smartnode:$VERSION-arm64
+    docker manifest create infosecual/smartnode:latest --amend infosecual/smartnode:$VERSION-amd64 --amend infosecual/smartnode:$VERSION-arm64
     echo "done!"
 
     echo -n "Pushing to Docker Hub... "
-    docker manifest push --purge rocketpool/smartnode:latest
+    docker manifest push --purge infosecual/smartnode:latest
     echo "done!"
 }
 
@@ -129,11 +128,11 @@ build_latest_docker_manifest() {
 build_docker_prune_provision_manifest() {
     echo -n "Building Docker Prune Provision manifest... "
     rm -f ~/.docker/manifests/docker.io_rocketpool_eth1-prune-provision-$VERSION
-    docker manifest create rocketpool/eth1-prune-provision:$VERSION --amend rocketpool/eth1-prune-provision:$VERSION-amd64 --amend rocketpool/eth1-prune-provision:$VERSION-arm64
+    docker manifest create infosecual/eth1-prune-provision:$VERSION --amend infosecual/eth1-prune-provision:$VERSION-amd64 --amend infosecual/eth1-prune-provision:$VERSION-arm64
     echo "done!"
 
     echo -n "Pushing to Docker Hub... "
-    docker manifest push --purge rocketpool/eth1-prune-provision:$VERSION
+    docker manifest push --purge infosecual/eth1-prune-provision:$VERSION
     echo "done!"
 }
 
