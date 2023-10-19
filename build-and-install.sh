@@ -450,7 +450,7 @@ progress 11 "Building the rocketpool cli..."
 #{ cd rocketpool-cli || fail "Could not cd into rocketpool-cli directory."; } >&2
 #{ ./build.sh || fail "Build failed."; } >&2
 docker run --rm -v $PWD:/smartnode infosecual/smartnode-builder:latest /smartnode/rocketpool-cli/build.sh || fail "Error building CLI binaries."
-{ cd ../.. || fail "Could not cd back to smartnode directory."; } >&2
+{ cd .. || fail "Could not cd back to smartnode directory."; } >&2
 
 # installing the rocketpool cli and daemon
 progress 12 "Installing the rocketpool cli and daemon..." 
