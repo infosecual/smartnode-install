@@ -47,7 +47,7 @@ fi
 
 
 # The total number of steps in the installation process
-TOTAL_STEPS="9"
+TOTAL_STEPS="12"
 # The Rocket Pool user data path
 RP_PATH="$HOME/.rocketpool"
 # The default smart node package version to download
@@ -359,7 +359,7 @@ fi
 
 
 # Check for existing installation
-progress 5 "Checking for existing installation..."
+progress 4 "Checking for existing installation..."
 if [ -d $RP_PATH ]; then 
     # Check for legacy files - key on the old config.yml
     if [ -f "$RP_PATH/config.yml" ]; then
@@ -402,21 +402,22 @@ fi
 
 
 # Create ~/.rocketpool dir & files
-progress 6 "Creating Rocket Pool user data directory..."
+progress 5 "Creating Rocket Pool user data directory..."
 { mkdir -p "$DATA_PATH/validators" || fail "Could not create the Rocket Pool user data directory."; } >&2
 { mkdir -p "$RP_PATH/runtime" || fail "Could not create the Rocket Pool runtime directory."; } >&2
 { mkdir -p "$DATA_PATH/secrets" || fail "Could not create the Rocket Pool secrets directory."; } >&2
 { mkdir -p "$DATA_PATH/rewards-trees" || fail "Could not create the Rocket Pool rewards trees directory."; } >&2
-{ mkdir -p "$RP_PATH/extra-scrape-jobs" || fail "Could not create the Prometheus extra scrape jobs directory."; } >&2
 
 
-# Download and extract package files
-progress 7 "Copying Rocket Pool directory templates..."
+# Copy Rocket Pool directory templates
+progress 6 "Copying Rocket Pool directory templates..."
+{ pwd|| fail "Could not copy local template directory."; } >&2
+
 { cp -rp ./install $TEMPDIR || fail "Could not copy local template directory."; } >&2
 { test -d "$PACKAGE_FILES_PATH" || fail "Could not extract the Rocket Pool package files."; } >&2
 
 # Copy package files
-progress 8 "Copying package files to Rocket Pool user data directory..."
+progress 7 "Copying package files to Rocket Pool user data directory..."
 { cp -r "$PACKAGE_FILES_PATH/addons" "$RP_PATH" || fail "Could not copy addons folder to the Rocket Pool user data directory."; } >&2
 { cp -r -n "$PACKAGE_FILES_PATH/override" "$RP_PATH" || rsync -r --ignore-existing "$PACKAGE_FILES_PATH/override" "$RP_PATH" || fail "Could not copy new override files to the Rocket Pool user data directory."; } >&2
 { cp -r "$PACKAGE_FILES_PATH/scripts" "$RP_PATH" || fail "Could not copy scripts folder to the Rocket Pool user data directory."; } >&2
@@ -426,13 +427,41 @@ progress 8 "Copying package files to Rocket Pool user data directory..."
 { touch -a "$RP_PATH/.firstrun" || fail "Could not create the first-run flag file."; } >&2
 
 # Clean up unnecessary files from old installations
-progress 9 "Cleaning up obsolete files from previous installs..."
+progress 8 "Cleaning up obsolete files from previous installs..."
 { rm -rf "$DATA_PATH/fr-default" || echo "NOTE: Could not remove '$DATA_PATH/fr-default' which is no longer needed."; } >&2
 GRAFFITI_OWNER=$(stat -c "%U" $RP_PATH/addons/gww/graffiti.txt)
 if [ "$GRAFFITI_OWNER" = "$USER" ]; then
     { rm -f "$RP_PATH/addons/gww/graffiti.txt" || echo -e "${COLOR_YELLOW}WARNING: Could not remove '$RP_PATH/addons/gww/graffiti.txt' which was used by the Graffiti Wall Writer addon. You will need to remove this file manually if you intend to use the Graffiti Wall Writer.${COLOR_RESET}"; } >&2
 fi
-}
 
+
+# get the smartnode cli repo
+progress 9 "Getting the smartnode cli repo..."
+# check that the smartnode directory exists, else clone it
+if [ ! -d smartnode ]; then
+    { mkdir smartnode || fail "Could not create the smartnode directory."; } >&2
+{ git clone git@github.com:infosecual/smartnode.git -b smartnode-unlock || fail "Could not clone the smartnode cli repo."; } >&2
+fi
+
+# build the rocketpool daemon buider image
+progress 10 "Building the rocketpool daemon builder image..."
+{ cd smartnode || fail "Could not change directory to smartnode."; } >&2
+{ ./build-builder.sh -v 0.1v || fail "Could not build the rocketpool daemon builder image."; } >&2
+{ ./daemon-build.sh || fail "Could not build the rocketpool daemon binaries."; } >&2
+
+# build the rocketpool cli
+progress 11 "Building the rocketpool cli..."
+#{ cd rocketpool-cli || fail "Could not cd into rocketpool-cli directory."; } >&2
+#{ ./build.sh || fail "Build failed."; } >&2
+docker run --rm -v $PWD:/smartnode infosecual/smartnode-builder:latest /smartnode/rocketpool-cli/build.sh || fail "Error building CLI binaries."
+{ cd .. || fail "Could not cd back to smartnode directory."; } >&2
+
+# installing the rocketpool cli and daemon
+progress 12 "Installing the rocketpool cli and daemon..." 
+{ mkdir -p ~/bin || fail "Could not create ~/bin"; } >&2
+{ cp smartnode/rocketpool-cli/rocketpool-cli-linux-amd64 ~/bin/rocketpool || fail "Could not copy rocketpool-cli to ~/bin"; } >&2
+{ chmod +x ~/bin/rocketpool || fail "Could not set executable permissions on rocketpool-cli"; } >&2
+
+}
 install "$@"
 
